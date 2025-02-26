@@ -1,5 +1,23 @@
 import re
+import json as js
 from datetime import datetime
+
+def savaToFile(data, fileName):
+    try:
+        with open(fileName, 'w') as file:
+            js.dump(data, file, indent=4)
+        print(f"Data successfully saved to {fileName}.")
+    except Exception as e:
+        print(f"An error occurred while saving the file: {e}")
+
+def loadFromFile(fileName):
+    try:
+        with open(fileName, 'r') as file:
+            data = js.load(file)
+        return data
+    except Exception as e:
+        print(f"An error occurred while loading the file: {e}")
+        return []
 
 def CreateAccount():
     name_pattern = r"^[A-Za-z]+$"
@@ -79,15 +97,15 @@ def createProject(user):
         "title": title,
         "details": details,
         "target": target,
-        "start_date": start_date,
-        "end_date": end_date,
+        "start_date": start_date.strftime('%Y-%m-%d'),
+        "end_date": end_date.strftime('%Y-%m-%d'),
         "owner": user["email"]
     }
     print("Project created successfully!")
     return project
 
 def view_project(projects):
-    if len(projects)==0:
+    if len(projects) == 0:
         print("No projects found.")
         return
     else:
@@ -95,8 +113,8 @@ def view_project(projects):
             print(f"Title: {project['title']}")
             print(f"Details: {project['details']}")
             print(f"Target: {project['target']} EGP")
-            print(f"Start Date: {project['start_date'].strftime('%Y-%m-%d')}")
-            print(f"End Date: {project['end_date'].strftime('%Y-%m-%d')}")
+            print(f"Start Date: {project['start_date']}")
+            print(f"End Date: {project['end_date']}")
             print(f"Owner: {project['owner']}")
             print("-" * 20)
 
@@ -105,13 +123,13 @@ def editProject(projects, user):
     for project in projects:
         if project["title"] == title and project["owner"] == user["email"]:
             print("Editing project:", title)
-            newDetails =  input("Enter new details: ")
+            newDetails = input("Enter new details: ")
             newTarget = float(input("Enter new target (EGP): "))
-            if len(newDetails)==0:
+            if len(newDetails) == 0:
                 project["details"] = project["details"]
             else:
                 project["details"] = newDetails
-            if newTarget==0:
+            if newTarget == 0:
                 project["target"] = project["target"]
             else:
                 project["target"] = newTarget
@@ -138,7 +156,9 @@ def search_by_date(projects):
 
     found_projects = []
     for project in projects:
-        if project["start_date"] <= date <= project["end_date"]:
+        project_start_date = datetime.strptime(project["start_date"], "%Y-%m-%d")
+        project_end_date = datetime.strptime(project["end_date"], "%Y-%m-%d")
+        if project_start_date <= date <= project_end_date:
             found_projects.append(project)
 
     if found_projects:
@@ -148,8 +168,8 @@ def search_by_date(projects):
         print("No projects found for the given date.")
 
 def main():
-    users = []
-    projects = []
+    users = loadFromFile("users.json")
+    projects = loadFromFile("projects.json")
 
     while True:
         print("\n1. Register\n2. Login\n3. Exit")
@@ -158,6 +178,7 @@ def main():
             user = CreateAccount()
             if isinstance(user, dict):  # Check if user is successfully created
                 users.append(user)
+                savaToFile(users, "users.json")
                 print("User registered successfully!")
         elif choice == "2":
             user = login(users)
@@ -169,12 +190,15 @@ def main():
                         project = createProject(user)
                         if project:
                             projects.append(project)
+                            savaToFile(projects, "projects.json")
                     elif option == "2":
                         view_project(projects)
                     elif option == "3":
                         editProject(projects, user)
+                        savaToFile(projects, "projects.json")
                     elif option == "4":
                         Delete(projects, user)
+                        savaToFile(projects, "projects.json")
                     elif option == "5":
                         search_by_date(projects)
                     elif option == "6":
